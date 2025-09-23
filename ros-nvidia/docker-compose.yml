@@ -1,0 +1,27 @@
+services:
+  ros_noetic:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ros-noetic-nvidia
+    container_name: ros-noetic-nvidia
+    hostname: ros-noetic-nvidia
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    volumes:
+      - ./catkin_ws:/home/miyoshilab/catkin_ws
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    tty: true
+    stdin_open: true
+    devices:
+      - "/dev/ttyACM0:/dev/ttyACM0"
