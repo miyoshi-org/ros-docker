@@ -1,0 +1,16 @@
+services:
+  ros_noetic_cpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ros-noetic-cpu
+    container_name: ros-noetic-cpu
+    hostname: ros-noetic-cpu
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    volumes:
+      - ./catkin_ws:/home/miyoshilab/catkin_ws
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    tty: true
+    stdin_open: true

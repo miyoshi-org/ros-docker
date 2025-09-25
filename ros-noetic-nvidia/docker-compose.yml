@@ -23,5 +23,3 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     tty: true
     stdin_open: true
-    devices:
-      - "/dev/ttyACM0:/dev/ttyACM0"
