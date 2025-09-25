@@ -1,119 +1,164 @@
-## 🚀 **DockerでROS/NVIDIA（最新版対応）環境構築マニュアル**
+# 🚀 **ROS/NVIDIA Environment Setup with Docker (Latest Supported)**
 
-このリポジトリは、**NVIDIA GPU を活用しつつ Docker 上で ROS 環境を構築**する手順をまとめたものです。
-**Ubuntu 20.04/22.04**、**Docker Engine 20.10+** に対応しています。
+This repository provides instructions for setting up a **ROS environment on Docker with NVIDIA GPU support**.
+It supports **Ubuntu 20.04/22.04** and **Docker Engine 20.10+**.
 
-## ✅ **0. NVIDIA Container Toolkit のインストール**
+---
 
-GPU を使用する場合は `nvidia-docker` が必要です。
-**CPU のみで動かす場合はスキップ可。**
+## ✅ **0. Install NVIDIA Container Toolkit**
+
+If you want to use GPU, you need `nvidia-docker`.
+**Skip this step if running on CPU only.**
 
 ```bash
-# 公式手順: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+# Official guide: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
 
-# 1. パッケージリポジトリを追加
+# 1. Add the package repositories
 distribution=$(. /etc/os-release;echo $ID$VERSION_ID) 
 curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
 curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list \
     | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
 
-# 2. パッケージ更新
+# 2. Update package index
 sudo apt-get update
 
-# 3. nvidia-docker2 をインストール
+# 3. Install nvidia-docker2
 sudo apt-get install -y nvidia-docker2
 
-# 4. Docker デーモンを再起動
+# 4. Restart Docker daemon
 sudo systemctl restart docker
 ```
 
-**動作確認（コンテナ内）例：**
+**Verify GPU inside a container:**
 
 ```bash
 docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi
 ```
 
-## ✅ **1. ユーザグループへの追加**
+---
+
+## ✅ **1. Add User to Groups**
 
 ```bash
-sudo usermod -aG dialout $USER    # シリアル通信が必要なら
-sudo usermod -aG docker $USER     # sudo なしで Docker を実行するため
+sudo usermod -aG dialout $USER    # for serial communication (optional)
+sudo usermod -aG docker $USER     # run docker without sudo
 ```
 
-> ⚠️ グループ変更後は **ログアウト → 再ログイン** または PC を再起動して反映！
+> ⚠️ After modifying groups, **log out and back in** or reboot to apply.
 
-## ✅ **2. GUIアプリケーションの表示許可（必要に応じて）**
+---
 
-X11 を使ってホスト側に GUI を表示する場合：
+## ✅ **2. Allow GUI Applications (if needed)**
+
+For X11 display forwarding from containers:
 
 ```bash
-xhost +local:root   # 一時的に root の接続を許可
+xhost +local:root   # temporarily allow root access
 ```
 
-作業後のセキュリティ対策：
+Revert afterwards for security:
 
 ```bash
-xhost -local:root   # 許可を元に戻す
+xhost -local:root
 ```
 
-> 💡 **Wayland セッションでは注意！**
-> X11 セッションに切り替えるか `x11docker` を使用してください。
+> 💡 **Note for Wayland users:**
+> Switch to X11 session or use `x11docker`.
 
-## ✅ **3. リポジトリのクローン**
+---
+
+## ✅ **3. Clone Repository**
 
 ```bash
 git clone https://github.com/miyoshi-nii/docker-ros.git
-cd docker-ros/ros-nvidia
+
+# GPU version:
+cd docker-ros/ros-noetic-nvidia  
+
+# CPU-only version:
+cd docker-ros/ros-noetic-cpu  
+
+# -------------------------------------------------------------------------
+# 💡 Difference between GPU and CPU versions:
+# - ros-noetic-nvidia : 
+#     Based on NVIDIA CUDA images, requires NVIDIA Container Toolkit.
+#     Recommended if you want to use GPU acceleration (e.g. Gazebo rendering,
+#     deep learning libraries, hardware acceleration).
+#
+# - ros-noetic-cpu : 
+#     Based on plain Ubuntu images, does not require CUDA or GPU drivers.
+#     Suitable for systems without NVIDIA GPU or when only CPU computation is needed.
+# -------------------------------------------------------------------------
 ```
 
-## ✅ **4. Dockerイメージのビルド**
+---
+
+## ✅ **4. Build Docker Image**
 
 ```bash
 docker compose build
 ```
 
-* グループ設定が反映されていない場合は `sudo docker compose build` を使ってください。
-* `--no-cache` オプションを付けるとキャッシュを使わずにクリーンビルドできます。
+* If group changes are not applied, use `sudo docker compose build`.
+* Use `--no-cache` for a clean build without cache.
 
-## ✅ **5. Dockerコンテナの起動（バックグラウンド）**
+---
+
+## ✅ **5. Start Docker Container (Detached Mode)**
 
 ```bash
 docker compose up -d
 ```
 
-* `-d` は「detached モード」＝ バックグラウンド起動
-* ログを確認したい場合は `docker compose logs -f` を使用
+* `-d` = detached mode (runs in background)
+* Check logs with:
 
-## ✅ **6. コンテナ内に入る**
+  ```bash
+  docker compose logs -f
+  ```
+
+---
+
+## ✅ **6. Enter the Container**
 
 ```bash
 docker compose exec miyoshilab bash
 ```
 
-* `miyoshilab` は `docker-compose.yml` で指定したサービス名です。
-* コンテナが複数ある場合は `docker compose ps` で確認。
+* `miyoshilab` is the service name defined in `docker-compose.yml`.
+* Use `docker compose ps` to check running containers.
 
-## ✅ **7. コンテナの停止と削除**
+---
+
+## ✅ **7. Stop and Remove Containers**
 
 ```bash
 docker compose down
 ```
 
-* `down` はコンテナ停止＋ネットワーク・ボリュームの削除。
-* コンテナは削除されますが、ビルド済みイメージは残ります。
+* `down` stops containers and removes networks/volumes.
+* Images remain on the system.
 
-## 🔍 **💡 便利な Docker Compose オプション**
+---
 
-| オプション        | 内容            |
-| ------------ | ------------- |
-| `-d`         | バックグラウンド実行    |
-| `--build`    | 起動前に必ずビルドを行う  |
-| `--no-cache` | キャッシュを使わずにビルド |
-| `logs -f`    | リアルタイムでログを見る  |
-| `ps`         | 起動中のコンテナ一覧    |
-| `down -v`    | ボリュームも削除      |
+## 🔍 **💡 Useful Docker Compose Options**
 
-## 📌 **公式ドキュメント**
+| Option       | Description                  |
+| ------------ | ---------------------------- |
+| `-d`         | Run in background (detached) |
+| `--build`    | Always rebuild before start  |
+| `--no-cache` | Build without cache          |
+| `logs -f`    | Follow logs in real time     |
+| `ps`         | List running containers      |
+| `down -v`    | Remove containers + volumes  |
+
+---
+
+## 📌 **Official Documentation**
 
 * [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
 * [Docker Compose](https://docs.docker.com/compose/)
+
+---
+
+Do you also want me to add a **section for CPU-only setup** (with instructions on how to switch to `ubuntu:20.04` instead of `nvidia/cuda`), or should I keep this README GPU-focused?
